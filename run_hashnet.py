@@ -75,6 +75,7 @@ def get_commit_id():
     return commit_id
 
 
+
 if __name__ == "__main__":
     if not path.exists('data.pickle'):
         preprocess()
