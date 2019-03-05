@@ -69,15 +69,15 @@ def network1(m,n):
     g = dy.tanh
     pc = dy.ParameterCollection()
     d = 10
-    #w1 = pc.add_parameters((m,d))
-    #b1 = pc.add_parameters((1,d), init=0.)
+    w1 = pc.add_parameters((m,d))
+    b1 = pc.add_parameters((1,d), init=0.)
     #w2 = pc.add_parameters((d,d))
     #b2 = pc.add_parameters((1,d), init=0.)
     #w3 = pc.add_parameters((d,n))
-    w3 = pc.add_parameters((m,n))
+    w3 = pc.add_parameters((d,n))
     b3 = pc.add_parameters((1,n), init=0.)
     layers = [
-        # layer_namedtuple(g,w1,b1,m,d,None,'normal'),
+        layer_namedtuple(g,w1,b1,m,d,None,'normal'),
         #layer_namedtuple(g,w2,b2,d,d,None,'normal'),
         layer_namedtuple(None,w3,b3,d,n,None,'final'),
         ]
