@@ -110,7 +110,7 @@ def network2(m,n,k):
 def train_network(train_data, dev_data, pc, params, out_file=None):
     
     epochs = 100
-    trainer = dy.AdamTrainer(pc)
+    trainer = dy.SimpleSGDTrainer(pc, learning_rate = 0.3)
     for ep in range(epochs):
         
         i = 0
