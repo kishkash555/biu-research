@@ -68,7 +68,7 @@ def network1(m,n):
     """
     g = dy.tanh
     pc = dy.ParameterCollection()
-    d = 10
+    d = 20
     w1 = pc.add_parameters((m,d))
     b1 = pc.add_parameters((1,d), init=0.)
     #w2 = pc.add_parameters((d,d))
@@ -108,7 +108,7 @@ def network2(m,n,k):
         ]
     return layers, pc
 
-def train_network(train_data, dev_data, pc, params):
+def train_network(train_data, dev_data, pc, params, out_file=None):
     
     epochs = 100
     trainer = dy.SimpleSGDTrainer(pc)
@@ -133,9 +133,12 @@ def train_network(train_data, dev_data, pc, params):
             #if i % 100 == 1:
         dev_loss, dev_acc = check_loss(dev_data, params)
         #print("epoch: {}\ttrain_loss: {:.4f}\tdev loss: {:.4f}\tacc: {:.2f}".format(i, train_loss, dev_loss, dev_acc))
-        print("epoch: {}\ttrain_loss: {:.4f}\ttrain_acc: {:.2f}".format(ep, train_loss, train_good/i))
-        print("epoch: {}\tdev_loss: {:.4f}\tdev_acc: {:.2f}".format(ep, dev_loss, dev_acc))
-        print()
+        msg = "epoch: {}\ttrain_loss: {:.4f}\ttrain_acc: {:.2f}\n".format(ep, train_loss, train_good/i) +\
+            "epoch: {}\tdev_loss: {:.4f}\tdev_acc: {:.2f}\n".format(ep, dev_loss, dev_acc)
+        if out_file:
+            out_file.write(msg)
+
+        print(msg)
 
 def check_loss(dev_data, params):
     cum_loss = 0.

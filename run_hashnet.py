@@ -5,11 +5,13 @@ import HashNet
 import pickle
 from os import path
 valid = re.compile(r'[a-zA-Z \.]')
+import subprocess
 
 filter_pairs = False
 train_file = 'data/train'
 dev_file = 'data/dev'
 
+output_file = 'result_'+'713b581d'+'.txt'
 label_map=OrderedDict([(la, i) for i, la in enumerate('en,de,nl,it,fr,es'.split(','))])
 m = 600
 n = 6
@@ -58,7 +60,8 @@ def run_train():
         [train_x, train_y, dev_x, dev_y] = pickle.load(a)
 
     layers, pc = HashNet.network1(m,n)
-    HashNet.train_network(list(zip(train_x, train_y)),list(zip(dev_x, dev_y)), pc, layers)
+    with open(output_file,'wt', encoding='utf8') as outf:
+        HashNet.train_network(list(zip(train_x, train_y)),list(zip(dev_x, dev_y)), pc, layers, outf)
 
 if __name__ == "__main__":
     if not path.exists('data.pickle'):
