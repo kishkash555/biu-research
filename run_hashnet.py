@@ -60,7 +60,7 @@ def run_train(output_file):
     with open('data.pickle','rb') as a:
         [train_x, train_y, dev_x, dev_y] = pickle.load(a)
 
-    layers, pc = HashNet.network1(m,n)
+    layers, pc = HashNet.network2(m,n)
     with open(output_file,'wt', encoding='utf8') as outf:
         HashNet.train_network(list(zip(train_x, train_y)),list(zip(dev_x, dev_y)), pc, layers, outf)
 

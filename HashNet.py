@@ -82,7 +82,7 @@ def network1(m,n):
         ]
     return layers, pc
 
-def network2(m,n,k):
+def network2(m,n):
     """
     a 3- layer MLP with the middle layer using hashing
     :param m: the width of the input
@@ -91,10 +91,10 @@ def network2(m,n,k):
     """
     g = dy.tanh
     pc = dy.ParameterCollection()
-    d = 50
-    k = 250 # represents 90% compression
+    d = 20
+    k = 40  # represents 90% compression
     w1 = pc.add_parameters((m,d))
-    b1 = pc.add_parameters((1,m), init=0.)
+    b1 = pc.add_parameters((1,d), init=0.)
     w2 = pc.add_parameters((1,k))
     b2 = pc.add_parameters((1,d), init=0.)
     w3 = pc.add_parameters((d,n))
@@ -110,7 +110,7 @@ def network2(m,n,k):
 def train_network(train_data, dev_data, pc, params, out_file=None):
     
     epochs = 100
-    trainer = dy.SimpleSGDTrainer(pc, learning_rate = 0.3)
+    trainer = dy.SimpleSGDTrainer(pc)
     for ep in range(epochs):
         
         i = 0
