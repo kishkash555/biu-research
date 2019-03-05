@@ -68,7 +68,7 @@ def network1(m,n):
     """
     g = dy.tanh
     pc = dy.ParameterCollection()
-    d = 40
+    d = 20
     w1 = pc.add_parameters((m,d))
     b1 = pc.add_parameters((1,d), init=0.)
     w2 = pc.add_parameters((d,d))
