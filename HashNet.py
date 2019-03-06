@@ -2,7 +2,7 @@ import dynet as dy
 import xxhash as xx
 import numpy as np
 from random import randint
-from collections import namedtuple
+from collections import namedtuple, Counter
 
 
 layer_namedtuple = namedtuple('layer','g,w,b,m,n,hf,type'.split(','))
@@ -12,7 +12,7 @@ def hashed_matrix(k,m,n,pc):
     create a hashing dynet matrix
     """
 
-def hashed_phi(a, hf, n):
+def hashed_phi(a, hf, N, K):
     r"""
     creates a phi matrix from activations a using hash function hf
     each entry of phi is a sum of the corresponding a's
@@ -20,18 +20,37 @@ def hashed_phi(a, hf, n):
     
     :param a: a (dynet) vector of inputs or activations from previous layer
     :param hf: a hash function [0, len(a)] -> len(w)
-    :param n: length of output vector
+    :param N: number of phi columns (size of output)
+    :param K: number of phi rows (size of parameter vector)
     :return: a dynet matrix phi which can be multiplied by w
     """
     # phi = [list() for _ in range(m)]
-    m = a.dim()
-    phi_i = []
-    for k in range(n):
-        for i in range(m):
-            phi_i.append([a[j] for j in range(m) if hf(i,j)==k])
-            
-    phi = dy.esum(phi_i)
+    M = a.dim()[0][1]
+    a_hits = Counter()
+    phi = []
+    for k in range(K):
+        phi_row = []
+        for i in range(N):
+            relevant_indexes = [j for j in range(M) if hf(i,j)==k]
+            a_hits.update(relevant_indexes)
+            if len(relevant_indexes):
+                phi_row.append(dy.esum([a[0][j] for j in relevant_indexes]))
+            else:
+                phi_row.append([])
+        phi.append(phi_row)
     return phi
+
+def evaluate_hash_layer(a, hf, W, N):
+    M = a.dim()[0][1]
+    holder = []
+    for j in range(M):
+        cur = []
+        for i in range(N):
+            cur.append(a[0][j]*W[0][hf(i,j)]) # W is stored as a row vector
+        holder.append(dy.esum(cur))
+    ret = dy.reshape(dy.concatenate(holder),(1, N))
+
+    return ret
 
 def eval_network(params, train_x, train_y):
     layer_in = dy.inputTensor(train_x[np.newaxis])
@@ -45,8 +64,8 @@ def eval_network(params, train_x, train_y):
             layer_out = g(layer_out)
         elif layer.type == 'hashed':
             layer_hf = layer.hf
-            phi = hashed_phi(layer_in, layer_hf, n)
-            layer_out = W * phi + b
+            # phi = hashed_phi(layer_in, layer_hf, n, W.dim()[0][1])
+            layer_out = evaluate_hash_layer(layer_in, layer_hf, W, n)
             layer_out = g(layer_out)
         elif layer.type == 'final':
             layer_out = layer_in * W + b
