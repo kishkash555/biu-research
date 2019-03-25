@@ -62,7 +62,13 @@ class Mlp2(nn.Module):
                 if i % 2000 == 1999:    # print every 2000 mini-batches
                     print('[%d, %5d] loss: %.3f' %
                         (ep + 1, i + 1, running_loss / 2000))
+                    sys.stdout.flush()
                     running_loss = 0.0
+
+def my_loss(y_hat, y):
+    max_y_hat = torch.max(y_hat)
+    value_at_label = y_hat[y]
+    return torch.max(torch.FloatTensor([0,max_y_hat-value_at_label]))
 
 
 def start_2h2_net(hidden_size):
@@ -169,7 +175,10 @@ if __name__ == "__main__":
         ))
     
     print("angles between vectors:\n{}\n".format(angles(np.concatenate([original_weights1,trained_weights1]))))
-
+    print("bias before and after: {} {}".format(
+        original_net.fc1.bias.detach().numpy(),
+        net.fc1.bias.detach().numpy(),
+        ))
 
     print("\n\nLayer 2:")
     original_weights1 = original_net.fc2.weight.detach().numpy()
@@ -185,6 +194,11 @@ if __name__ == "__main__":
         ))
     
     print("angles between vectors:\n{}".format(angles(np.concatenate([original_weights1,trained_weights1]))))
+    print("bias before and after: {} {}".format(
+        original_net.fc2.bias.detach().numpy(),
+        net.fc2.bias.detach().numpy(),
+        ))
+
     print()
     sys.exit()
 
@@ -196,5 +210,3 @@ if __name__ == "__main__":
     plt.bar(*post_grad_hist, width=0.15/b)
     plt.show()
 
-
-import datetime as dt; 
