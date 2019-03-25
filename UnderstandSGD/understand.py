@@ -37,7 +37,7 @@ class Mlp2(nn.Module):
         return out
         
     def trainnn(self, train_data, epochs):
-        criterion = torch.nn.CrossEntropyLoss()
+        criterion = torch.nn.MarginRankingLoss(margin=0.1)
         optimizer = optim.SGD(self.parameters(), lr = 0.1) #, lr=0.001, momentum=0.9)
         
         for ep in range(epochs):  # loop over the dataset multiple times
@@ -53,7 +53,8 @@ class Mlp2(nn.Module):
 
                 # forward + backward + optimize
                 output = self(torch.FloatTensor([inpt]))
-                loss = criterion(output, torch.Tensor(data=[label]).to(dtype=torch.long))
+                loss = criterion(output[:1], output[:,0], torch.Tensor(data=[label if label else -1]))
+
                 loss.backward()
                 optimizer.step()
 
@@ -67,7 +68,7 @@ class Mlp2(nn.Module):
 
 def my_loss(y_hat, y):
     max_y_hat = torch.max(y_hat)
-    value_at_label = y_hat[y]
+    value_at_label = y_hat[0][y]
     return torch.max(torch.FloatTensor([0,max_y_hat-value_at_label]))
 
 
