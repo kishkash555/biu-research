@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 import argparse
+import subprocess
+import os.path as path
+import pickle
 
 def load_mnist(args):
     # https://github.com/pytorch/examples/blob/master/mnist/main.py
@@ -33,7 +36,7 @@ def train(model, args, train_loader,test_loader, optimizer, epochs):
             loss.backward()
             optimizer.step()
             if batch_idx % args.log_interval == 0:
-                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                fprint('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.item()))
         test(model, args, test_loader)
@@ -46,7 +49,7 @@ def test(model, args, test_loader):
         y_hat = torch.argmax(output,1)
         corrects += (y_hat == target).sum()
         total += len(y_hat)
-    print('Test: correct {} of {}, error rate {:.1%}'.format(corrects, total, 1-corrects/total))
+    fprint('Test: correct {} of {}, error rate {:.1%}'.format(corrects, total, 1-corrects/total))
 
 def arguments():
         # Training settings
@@ -87,11 +90,53 @@ def mlp(input_size, output_size, hidden_sizes):
     return ret
 
 def main():
+    global log_file
     args = arguments()
+    k, commit_id = pick_result_fname(qualifier='log')
+    log_fname = format_filename(qualifier='log').format(commit_id, k)
+    data_fname = format_filename(qualifier='data', ext='.pkl').format(commit_id, k)
+   
+    log_file = open(log_fname,'wt')
+
     net = mlp(28*28,10,[200,40,20])
     train_loader, test_loader = load_mnist(args)
     optimizer = torch.optim.Adam(net.parameters())
     train(net,args,train_loader,test_loader,optimizer,5)
+    
+    with open(data_fname,'wb') as a:
+        pickle.dump(net.state_dict(),a)
 
+    log_file.close()
+
+def fprint(msg):
+    global log_file
+    print(msg)
+    log_file.write(msg+'\n')
+
+    
+def get_commit_id():
+    with open('gitlog.txt','wt') as a:
+        subprocess.call('git log -1'.split(' '), stdout=a)
+    with open('gitlog.txt','rt') as a:
+        line = a.readline().split(' ')
+        commit_id = line[1][:6]
+    return commit_id
+
+
+def format_filename(dir='results', qualifier='', ext='.txt'):
+    return path.join(
+        dir,
+        '_'.join(['result'] + ([qualifier] if len(qualifier) else []) + [r'{}_{:03}'+ext])
+    )
+
+def pick_result_fname(dir='results', qualifier='',ext='.txt'):
+    commit_id = get_commit_id()
+    i = 0 
+    output_file_tmplt = format_filename(dir, qualifier, ext)
+    while path.exists(output_file_tmplt.format(commit_id,i)) and \
+        path.getsize(output_file_tmplt.format(commit_id,i)):
+        i += 1 
+    return i, commit_id
+    
 if __name__ == "__main__":
     main()
