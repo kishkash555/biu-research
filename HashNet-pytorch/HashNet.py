@@ -47,32 +47,27 @@ class hashedLayer(nn.Module):
         inverse_H = np.zeros((fan_out, K, fan_in),np.uint8)
 
         for j in range(fan_in):
-            print("j={}".format(j))
             for i in range(fan_out):
                 k = self.H(i,j)
                 w_np[k] += t[j,i]
                 inverse_H[i,k,j] = 1
-        self.W = torch.tensor(w_np, dtype=torch.float32)
+        self.W = torch.tensor(w_np, dtype=torch.float32, requires_grad=True)
         self.K = K
         self.inverse_H = inverse_H
         self.fan_out = fan_out
+        self.H1 = torch.tensor(inverse_H, dtype=torch.float, requires_grad=False)
         
     def forward(self, a):
         # first compute all possible combinations of a and K
 
-        #mults = torch.bmm(self.K, a)
-        z = []
-
+        z_alt = []
         for i in range(self.fan_out):
-            z_kj =  [] 
-            for k in range(self.K):
-                a_kj = torch.sum(a[:,self.inverse_H[i,k,:].nonzero()],2)  
-                z_kj.append(a_kj * self.W.data[k])
-            z_kj = torch.stack(z_kj)
-            z.append(torch.sum(z_kj,dim=0))
+            a_kj_alt = torch.matmul(a, self.H1.data[i,:,:].t())
+            z_alt.append(torch.matmul(a_kj_alt, self.W))
+            1
 
-        zz = torch.stack(z).squeeze().t()
-        return zz
+        zz = torch.stack(z_alt)
+        return zz.t()
 
 class HashNet(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, hashing_size):
@@ -89,7 +84,7 @@ class HashNet(nn.Module):
 
 def main():
     print("main started")
-    model = HashNet(28*28, 800, 10, 100)
+    model = HashNet(28*28, 80, 10, 10)
     args = train_mnist.arguments()
     print("model initialized")
     train_loader, test_loader = train_mnist.load_mnist(args)

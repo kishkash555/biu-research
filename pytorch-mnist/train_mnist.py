@@ -6,6 +6,8 @@ import argparse
 import subprocess
 import os.path as path
 import pickle
+import datetime
+now = datetime.datetime.now
 
 log_file = None
 
@@ -30,6 +32,7 @@ def train(model, args, train_loader,test_loader, optimizer, epochs):
     model.train(True)
     CE = nn.CrossEntropyLoss()
     for epoch in range(epochs):
+        start = now()
         for batch_idx, (data, target) in enumerate(train_loader):
             optimizer.zero_grad()
             data = data.view([-1, 784])
@@ -38,20 +41,22 @@ def train(model, args, train_loader,test_loader, optimizer, epochs):
             loss.backward()
             optimizer.step()
             if batch_idx % args.log_interval == 0:
-                fprint('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                fprint('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime elapsed: {}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset),
-                    100. * batch_idx / len(train_loader), loss.item()))
+                    100. * batch_idx / len(train_loader), loss.item(),
+                    now()-start))
+                start = now()
         test(model, args, test_loader)
 
 def test(model, args, test_loader):
-    corrects = total = 0
+    corrects, total = 0, 0
     for (data, target) in test_loader:
         data = data.view([-1, 784])
         output = model(data)
         y_hat = torch.argmax(output,1)
         corrects += (y_hat == target).sum()
         total += len(y_hat)
-    fprint('Test: correct {} of {}, error rate {:.1%}'.format(corrects, total, 1-corrects/total))
+    fprint('Test: correct {} of {}, error rate {:.1%}'.format(corrects, total,  1.-float(corrects)/total ))
 
 def arguments():
         # Training settings
