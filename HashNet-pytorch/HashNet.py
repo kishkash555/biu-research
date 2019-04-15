@@ -40,33 +40,24 @@ class hashedLayer(nn.Module):
         super(hashedLayer, self).__init__()
         xav = np.sqrt(6/(fan_in+fan_out))
         self.H = make_hash(fan_out, fan_in, K)
-
         # initilize K with the equivalent of Glorot init
         w_np = np.zeros(K,dtype=float)
         t = np.random.random((fan_in, fan_out))*2*xav- xav
-        inverse_H = np.zeros((fan_out, K, fan_in),np.uint8)
+        invH = np.zeros((fan_out, fan_in, K),np.uint8)
 
         for j in range(fan_in):
             for i in range(fan_out):
                 k = self.H(i,j)
                 w_np[k] += t[j,i]
-                inverse_H[i,k,j] = 1
+                invH[i,j,k] = 1
         self.W = torch.tensor(w_np, dtype=torch.float32, requires_grad=True)
         self.K = K
-        self.inverse_H = inverse_H
         self.fan_out = fan_out
-        self.H1 = torch.tensor(inverse_H, dtype=torch.float, requires_grad=False)
+        self.H1 = torch.tensor(invH, dtype=torch.float, requires_grad=False)
         
     def forward(self, a):
-        # first compute all possible combinations of a and K
-
-        z_alt = []
-        for i in range(self.fan_out):
-            a_kj_alt = torch.matmul(a, self.H1.data[i,:,:].t())
-            z_alt.append(torch.matmul(a_kj_alt, self.W))
-            1
-
-        zz = torch.stack(z_alt)
+        a_kj = torch.matmul(a, self.H1)
+        zz = torch.matmul(a_kj, self.W)
         return zz.t()
 
 class HashNet(nn.Module):
