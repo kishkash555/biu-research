@@ -7,6 +7,8 @@ import subprocess
 import os.path as path
 import pickle
 
+log_file = None
+
 def load_mnist(args):
     # https://github.com/pytorch/examples/blob/master/mnist/main.py
     train_loader = torch.utils.data.DataLoader(
@@ -109,9 +111,9 @@ def main():
     log_file.close()
 
 def fprint(msg):
-    global log_file
     print(msg)
-    log_file.write(msg+'\n')
+    if log_file:
+        log_file.write(msg+'\n')
 
     
 def get_commit_id():

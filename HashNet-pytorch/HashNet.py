@@ -47,6 +47,7 @@ class hashedLayer(nn.Module):
         inverse_H = np.zeros((fan_out, K, fan_in),np.uint8)
 
         for j in range(fan_in):
+            print("j={}".format(j))
             for i in range(fan_out):
                 k = self.H(i,j)
                 w_np[k] += t[j,i]
@@ -63,14 +64,14 @@ class hashedLayer(nn.Module):
         z = []
 
         for i in range(self.fan_out):
-            z_kj =  torch.zeros(1, requires_grad=True)
+            z_kj =  [] 
             for k in range(self.K):
-                a_kj = torch.sum(a[:,self.inverse_H[i,k,:]],1,keepdim=True)  
-                z_kj = z_kj + a_kj * self.W.data[k]
-            z.append(z_kj)
+                a_kj = torch.sum(a[:,self.inverse_H[i,k,:].nonzero()],2)  
+                z_kj.append(a_kj * self.W.data[k])
+            z_kj = torch.stack(z_kj)
+            z.append(torch.sum(z_kj,dim=0))
 
-        zz = torch.FloatTensor(z)
-        print('forward: {}'.format(zz))
+        zz = torch.stack(z).squeeze().t()
         return zz
 
 class HashNet(nn.Module):
@@ -81,15 +82,18 @@ class HashNet(nn.Module):
         self.fc2 = nn.Linear(hidden_size, output_size)
     
     def forward(self,a):
-        ret = nn.Tanh(self.fc1(a))
+        ret = torch.tanh(self.fc1(a))
         ret = self.fc2(ret)
         return ret
 
 
 def main():
+    print("main started")
     model = HashNet(28*28, 800, 10, 100)
     args = train_mnist.arguments()
+    print("model initialized")
     train_loader, test_loader = train_mnist.load_mnist(args)
+    print("loaders initialized")
     optimizer = torch.optim.Adam(model.parameters())
     train_mnist.train(model,args,train_loader, test_loader, optimizer, 10)
 
