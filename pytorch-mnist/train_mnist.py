@@ -50,6 +50,7 @@ def train(model, args, train_loader,test_loader, optimizer, epochs):
 
 def test(model, args, test_loader):
     corrects, total = 0, 0
+    model.train(False)
     for (data, target) in test_loader:
         data = data.view([-1, 784])
         output = model(data)

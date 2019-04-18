@@ -7,6 +7,8 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 import train_mnist
 
+relu = torch.nn.ReLU()
+
 def make_hash(m,n,k):
     """
     create a hash function and return it
@@ -68,7 +70,7 @@ class HashNet(nn.Module):
         self.fc2 = nn.Linear(hidden_size, output_size)
     
     def forward(self,a):
-        ret = torch.tanh(self.fc1(a))
+        ret = relu(self.fc1(a))
         ret = self.fc2(ret)
         return ret
 

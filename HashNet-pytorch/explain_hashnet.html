@@ -1,0 +1,34 @@
+<h2 id="representation-of-the-hashing-trick-layer-as-2d-matrices">Representation of &quot;The Hashing Trick&quot; layer as 2D matrices</h2>
+<h3 id="introduction">Introduction</h3>
+<p>A standard fully-connected layer is written as: <span class="math inline"><em>o</em> = <em>g</em>(<em>z</em>)=<em>g</em>(<em>a</em><em>W</em>)</span> Where</p>
+<ul>
+<li><span class="math inline"><em>o</em></span> is the output vector, length <span class="math inline"><em>M</em></span>.</li>
+<li><span class="math inline"><em>a</em></span> is the input vector, size <span class="math inline"><em>N</em></span></li>
+<li><span class="math inline"><em>W</em></span> is <span class="math inline"><em>N</em> × <em>M</em></span>.</li>
+</ul>
+<p>With a hashed layer, we want to have a similar representation <span class="math inline"><em>o</em> = <em>g</em>(<em>z</em>)=<em>g</em>((<em>a</em><em>H</em>)<em>W</em>)</span> with <span class="math inline"><em>H</em></span> determined by the hash, and <span class="math inline"><em>W</em></span> a matrix of adjustable weights. We will see how these matrices can be constructed. To force a 2D representation, we will need to use very long vectors and matrices, with sparsity, repititions, or both</p>
+<h3 id="developing-the-h-matrix">Developing the H matrix</h3>
+<p>In simple terms, this is the mechansim proposed in the paper:</p>
+<ul>
+<li>Inputs to the algorithm: parameter <span class="math inline"><em>K</em></span></li>
+<li>Create (via hashing), <span class="math inline"><em>M</em></span> splits of the input vector <span class="math inline"><em>a</em></span>. Each split assigns an element <span class="math inline"><em>a</em><sub><em>j</em></sub></span> into one of <span class="math inline"><em>K</em></span> groups. A &quot;good&quot; hash function will ensure that:
+<ul>
+<li>For each split, the probablity of a particular element <span class="math inline"><em>a</em><sub><em>j</em></sub></span> to fall in any particular group is equal between the groups (and therefore equals <span class="math inline">1/<em>K</em></span>)</li>
+<li>The group assignments in each split are &quot;as independent as possible&quot; from the other splits (pairwise-independence)</li>
+</ul></li>
+</ul>
+<p>This can be expressed as follows (a number in brackets <span class="math inline">[<em>L</em>]</span> denotes the set of natural numbers from 1 to L):</p>
+<ul>
+<li><span class="math inline"><em>h</em><sub><em>i</em></sub> : [<em>N</em>]→[<em>K</em>], <em>i</em> ∈ [<em>M</em>]</span></li>
+<li><span class="math inline">$a'_{i,k} = \sum \limits_{j: h_i(j)=k} a_j$</span>.</li>
+</ul>
+<p><span class="math inline"><em>a</em>′</span> needs to be double indexed, hence acquiring a 2D, or matrix, form. But we want to avoid this since this breaks the ordinary notation where the neurons in a layer are represented as a vector. For this we introduce a new index letter <span class="math inline"><em>q</em> ∈ [<em>M</em><em>K</em>]</span> so that <span class="math inline">$a'_q = \sum \limits_{j: h_{\lfloor q/K \rfloor}(j)=q \mod K} a_j$</span></p>
+<p>We are now ready to describe the matrix <span class="math inline"><em>H</em></span>:</p>
+<ul>
+<li><span class="math inline"><em>H</em> ∈ {0,1}<sup><em>N</em> × <em>M</em><em>K</em></sup></span> .</li>
+<li><span class="math inline"><em>H</em><sub><em>j</em>, <em>q</em></sub> = 1⇔</span> <span class="math inline"><em>h</em><sub>⌊<em>q</em>/<em>K</em>⌋</sub>(<em>j</em>)=<em>q</em>mod<em>K</em></span>.</li>
+</ul>
+<p>So the intermediate layer created by the hash, is actually much larger than both <span class="math inline"><em>N</em></span>, <span class="math inline"><em>M</em></span> and &quot;codes&quot; M splits of the integers 1 to N. If we take just the first <span class="math inline"><em>K</em></span> columns of <span class="math inline"><em>H</em></span>, we will have the value 1 exactly once in each row. This also holds for the second group of <span class="math inline"><em>K</em></span> columns, third, and so forth. The probability of a 1 in <span class="math inline"><em>H</em></span> is <span class="math inline">$\frac{N}{NK}=\frac{1}{K}$</span>.</p>
+<p>This completes our analysis of <span class="math inline"><em>H</em></span>. we now need to understand the structure of <span class="math inline"><em>W</em></span>.</p>
+<h3 id="the-structure-of-w">The structure of W</h3>
+<p><span class="math inline"><em>W</em> ∈ ℝ<sup><em>M</em><em>K</em> × <em>M</em></sup></span>. It includes only <span class="math inline"><em>K</em></span> unique values. The first column has the values in rows 1 to <span class="math inline"><em>K</em></span>, the rest of the column containing zero. the 2nd column starts with <span class="math inline"><em>K</em></span> zeros, then the <span class="math inline"><em>K</em></span> unique values, then zeros all the way down. In the 3rd column, the nonzero values start in position <span class="math inline">2<em>K</em> + 1</span> and run up to position <span class="math inline">3<em>K</em></span>.</p>
