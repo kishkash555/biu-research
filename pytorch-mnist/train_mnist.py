@@ -11,6 +11,8 @@ now = datetime.datetime.now
 
 log_file = None
 
+EPOCHS = 20
+
 def load_mnist(args):
     # https://github.com/pytorch/examples/blob/master/mnist/main.py
     train_loader = torch.utils.data.DataLoader(
@@ -34,6 +36,7 @@ def train(model, args, train_loader,test_loader, optimizer, epochs):
     for epoch in range(epochs):
         start = now()
         for batch_idx, (data, target) in enumerate(train_loader):
+            data, target = data.to(args.device), target.to(args.device)
             optimizer.zero_grad()
             data = data.view([-1, 784])
             output = model(data)
@@ -52,6 +55,7 @@ def test(model, args, test_loader):
     corrects, total = 0, 0
     model.train(False)
     for (data, target) in test_loader:
+        data, target = data.to(args.device), target.to(args.device)
         data = data.view([-1, 784])
         output = model(data)
         y_hat = torch.argmax(output,1)
@@ -72,8 +76,8 @@ def arguments():
                         help='learning rate (default: 0.01)')
     parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                         help='SGD momentum (default: 0.5)')
-    parser.add_argument('--no-cuda', action='store_true', default=False,
-                        help='disables CUDA training')
+    parser.add_argument('--device', type=str, default='cpu',
+                        help='use a valid torch device string e.g. "cpu", "cuda:1"')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
     parser.add_argument('--log-interval', type=int, default=32, metavar='N',
@@ -82,39 +86,46 @@ def arguments():
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
     arg = parser.parse_args()
+    if torch.cuda.is_available():
+        print('initializing {}'.format(arg.device))
+        arg.device = torch.device(arg.device)        
+    else:
+        print('initializing cpu')
+        arg.device = torch.device('cpu')
+
     return arg
 
 def mlp(input_size, output_size, hidden_sizes):
-    hl1, hl2, hl3 = hidden_sizes[:3]
+    hl1 = hidden_sizes[0]
     ret = nn.Sequential(
         nn.Linear(input_size,hl1),
+        nn.Dropout2d(0.3,True),
         nn.Tanh(),
-        nn.Linear(hl1,hl2),
-        nn.Tanh(),
-        nn.Linear(hl2,hl3),
-        nn.Tanh(),
-        nn.Linear(hl3,output_size))
+        nn.Linear(hl1,output_size)
+        )
 
     return ret
 
 def main():
     global log_file
     args = arguments()
-    k, commit_id = pick_result_fname(qualifier='log')
-    log_fname = format_filename(qualifier='log').format(commit_id, k)
-    data_fname = format_filename(qualifier='data', ext='.pkl').format(commit_id, k)
-   
-    log_file = open(log_fname,'wt')
+    for hidden_layer_size in [100,200,400,800,1200,1600]:
+        k, commit_id = pick_result_fname(qualifier='log')
+        log_fname = format_filename(qualifier='log').format(commit_id, k)
+        data_fname = format_filename(qualifier='data', ext='.pkl').format(commit_id, k)
+        print('log file name: {}'.format(log_fname))
+        log_file = open(log_fname,'wt')
 
-    net = mlp(28*28,10,[200,40,20])
-    train_loader, test_loader = load_mnist(args)
-    optimizer = torch.optim.Adam(net.parameters())
-    train(net,args,train_loader,test_loader,optimizer,5)
-    
-    with open(data_fname,'wb') as a:
-        pickle.dump(net.state_dict(),a)
+        fprint('hidden layer size: {}'.format(hidden_layer_size))
+        net = mlp(28*28,10,[hidden_layer_size]).to(device=args.device)
+        train_loader, test_loader = load_mnist(args)
+        optimizer = torch.optim.Adam(net.parameters(),weight_decay=0.02)
+        train(net,args,train_loader,test_loader,optimizer,EPOCHS)
+        
+        with open(data_fname,'wb') as a:
+            pickle.dump(net.state_dict(),a)
 
-    log_file.close()
+        log_file.close()
 
 def fprint(msg):
     print(msg)

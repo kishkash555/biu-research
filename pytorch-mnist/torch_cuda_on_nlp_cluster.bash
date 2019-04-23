@@ -1,0 +1,1 @@
+ conda install pytorch torchvision cuda80 cudatoolkit=8.0 -c pytorch
