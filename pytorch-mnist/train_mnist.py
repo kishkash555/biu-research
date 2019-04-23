@@ -165,5 +165,5 @@ def pick_result_fname(dir='results', qualifier='',ext='.txt'):
     return i, commit_id
     
 if __name__ == "__main__":
-    sys.argv=sys.argv+ ['--epochs', '40', '--activation', 'tanh']
+    sys.argv=sys.argv+ ['--epochs', '40', '--activation', 'relu']
     main()
