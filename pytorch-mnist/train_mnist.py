@@ -30,10 +30,10 @@ def load_mnist(args):
         batch_size=args.test_batch_size, shuffle=True)
     return train_loader, test_loader
 
-def train(model, args, train_loader,test_loader, optimizer, epochs):
+def train(model, args, train_loader,test_loader, optimizer):
     model.train(True)
     CE = nn.CrossEntropyLoss()
-    for epoch in range(epochs):
+    for epoch in range(args.epochs):
         start = now()
         for batch_idx, (data, target) in enumerate(train_loader):
             data, target = data.to(args.device), target.to(args.device)
@@ -70,8 +70,8 @@ def arguments():
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                        help='number of epochs to train (default: 10)')
+    parser.add_argument('--epochs', type=int, default=20, metavar='N',
+                        help='number of epochs to train (default: 20)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='learning rate (default: 0.01)')
     parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
@@ -83,6 +83,9 @@ def arguments():
     parser.add_argument('--log-interval', type=int, default=32, metavar='N',
                         help='how many batches to wait before logging training status')
     
+    parser.add_argument('--activation', type=str, default='tanh', metavar='N',
+                        help='type of activation function, tanh/relu (default:tanh')
+    
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
     arg = parser.parse_args()
@@ -92,15 +95,20 @@ def arguments():
     else:
         print('initializing cpu')
         arg.device = torch.device('cpu')
-
+    if arg.activation == 'tanh':
+        print('activation: tanh')
+        arg.activation = nn.Tanh()
+    else:
+        print('activation: relu')
+        arg.activation = nn.ReLU()
     return arg
 
-def mlp(input_size, output_size, hidden_sizes):
+def mlp(input_size, output_size, hidden_sizes, args):
     hl1 = hidden_sizes[0]
     ret = nn.Sequential(
         nn.Linear(input_size,hl1),
         nn.Dropout2d(0.3,True),
-        nn.Tanh(),
+        args.activation,
         nn.Linear(hl1,output_size)
         )
 
@@ -117,10 +125,10 @@ def main():
         log_file = open(log_fname,'wt')
 
         fprint('hidden layer size: {}'.format(hidden_layer_size))
-        net = mlp(28*28,10,[hidden_layer_size]).to(device=args.device)
+        net = mlp(28*28,10,[hidden_layer_size], args).to(device=args.device)
         train_loader, test_loader = load_mnist(args)
         optimizer = torch.optim.Adam(net.parameters(),weight_decay=0.02)
-        train(net,args,train_loader,test_loader,optimizer,EPOCHS)
+        train(net,args,train_loader,test_loader,optimizer)
         
         if args.save_model:
             with open(data_fname,'wb') as a:
