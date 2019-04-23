@@ -12,8 +12,6 @@ now = datetime.datetime.now
 
 log_file = None
 
-EPOCHS = 20
-
 def load_mnist(args):
     # https://github.com/pytorch/examples/blob/master/mnist/main.py
     train_loader = torch.utils.data.DataLoader(
@@ -118,7 +116,7 @@ def mlp(input_size, output_size, hidden_sizes, args):
 def main():
     global log_file
     args = arguments()
-    for hidden_layer_size in [100,200,400,800,1200,1600]:
+    for hidden_layer_size in [50, 100,200,400,800,1200,1600]*40:
         k, commit_id = pick_result_fname(qualifier='log')
         log_fname = format_filename(qualifier='log').format(commit_id, k)
         data_fname = format_filename(qualifier='data', ext='.pkl').format(commit_id, k)
