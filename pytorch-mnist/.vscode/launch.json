@@ -10,7 +10,8 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["--glob" ,"result_log_b7a606_*.txt", "--dir", "results", "--show-by", "epoch"]
+            //"args": ["--glob" ,"result_log_b7a606_*.txt", "--dir", "results", "--show-by", "epoch"]
+            //"args": ["--epochs","1"]
         },
         {
             "name": "Python: Remote Attach",
