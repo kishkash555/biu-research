@@ -43,7 +43,7 @@ def train(model, args, train_loader,test_loader, optimizer, epochs):
             loss = CE(output, target)
             loss.backward()
             optimizer.step()
-            if batch_idx % args.log_interval == 0:
+            if args.log_interval > 0 and batch_idx % args.log_interval == 0:
                 fprint('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime elapsed: {}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.item(),
@@ -122,8 +122,9 @@ def main():
         optimizer = torch.optim.Adam(net.parameters(),weight_decay=0.02)
         train(net,args,train_loader,test_loader,optimizer,EPOCHS)
         
-        with open(data_fname,'wb') as a:
-            pickle.dump(net.state_dict(),a)
+        if args.save_model:
+            with open(data_fname,'wb') as a:
+                pickle.dump(net.state_dict(),a)
 
         log_file.close()
 
