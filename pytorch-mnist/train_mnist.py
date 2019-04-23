@@ -100,7 +100,7 @@ def mlp(input_size, output_size, hidden_sizes):
     ret = nn.Sequential(
         nn.Linear(input_size,hl1),
         nn.Dropout2d(0.3,True),
-        nn.Tanh(),
+        nn.ReLU(),
         nn.Linear(hl1,output_size)
         )
 
