@@ -116,7 +116,7 @@ def mlp(input_size, output_size, hidden_sizes, args):
 def main():
     global log_file
     args = arguments()
-    for hidden_layer_size in [50, 100,200,400,800,1200,1600]*40:
+    for hidden_layer_size in [50, 100,200,400,800,1200,1600]*10:
         k, commit_id = pick_result_fname(qualifier='log')
         log_fname = format_filename(qualifier='log').format(commit_id, k)
         data_fname = format_filename(qualifier='data', ext='.pkl').format(commit_id, k)
@@ -165,5 +165,5 @@ def pick_result_fname(dir='results', qualifier='',ext='.txt'):
     return i, commit_id
     
 if __name__ == "__main__":
-    sys.argv=sys.argv+ ['--epochs', '40', '--activation', 'relu']
+    sys.argv=sys.argv+ ['--epochs', '40', '--activation', 'tanh']
     main()
