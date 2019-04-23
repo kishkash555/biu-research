@@ -153,8 +153,7 @@ def pick_result_fname(dir='results', qualifier='',ext='.txt'):
     commit_id = get_commit_id()
     i = 0 
     output_file_tmplt = format_filename(dir, qualifier, ext)
-    while path.exists(output_file_tmplt.format(commit_id,i)) and \
-        path.getsize(output_file_tmplt.format(commit_id,i)):
+    while path.exists(output_file_tmplt.format(commit_id,i)):
         i += 1 
     return i, commit_id
     
