@@ -126,7 +126,7 @@ def main():
         fprint('hidden layer size: {}'.format(hidden_layer_size))
         net = mlp(28*28,10,[hidden_layer_size], args).to(device=args.device)
         train_loader, test_loader = load_mnist(args)
-        optimizer = torch.optim.Adam(net.parameters(),weight_decay=0.02)
+        optimizer = torch.optim.Adam(net.parameters(),weight_decay=0.0002)
         train(net,args,train_loader,test_loader,optimizer)
         
         if args.save_model:
@@ -165,5 +165,5 @@ def pick_result_fname(dir='results', qualifier='',ext='.txt'):
     return i, commit_id
     
 if __name__ == "__main__":
-    sys.argv=sys.argv+ ['--epochs', '40', '--activation', 'relu']
+    sys.argv=sys.argv+ ['--epochs', '25', '--activation', 'relu']
     main()
