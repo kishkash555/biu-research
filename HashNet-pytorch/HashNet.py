@@ -95,7 +95,7 @@ def main():
     expansion_factor = args.seed # ugly hack 
     hidden_size = 50 * expansion_factor 
     
-    model = HashNet2Layer(input_size, hidden_size, output_size, k1, k2)
+    model = HashNet2Layer(input_size, hidden_size, output_size, k1, k2).to(device=args.device)
     train_loader, test_loader = train_mnist.load_mnist(args)
     
 
