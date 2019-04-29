@@ -37,7 +37,7 @@ def train(model, args, train_loader,test_loader, optimizer):
         for batch_idx, (data, target) in enumerate(train_loader):
             data, target = data.to(args.device), target.to(args.device)
             optimizer.zero_grad()
-            data = data.view([-1, 784])
+            data = data.view([data.shape[0], -1])
             output = model(data)
             loss = CE(output, target)
             loss.backward()
