@@ -7,11 +7,10 @@ import subprocess
 import os.path as path
 import pickle
 import datetime
+import sys
 now = datetime.datetime.now
 
 log_file = None
-
-EPOCHS = 20
 
 def load_mnist(args):
     # https://github.com/pytorch/examples/blob/master/mnist/main.py
@@ -117,7 +116,7 @@ def mlp(input_size, output_size, hidden_sizes, args):
 def main():
     global log_file
     args = arguments()
-    for hidden_layer_size in [100,200,400,800,1200,1600]:
+    for hidden_layer_size in [50, 100,200,400,800,1200,1600]*10:
         k, commit_id = pick_result_fname(qualifier='log')
         log_fname = format_filename(qualifier='log').format(commit_id, k)
         data_fname = format_filename(qualifier='data', ext='.pkl').format(commit_id, k)
@@ -127,7 +126,7 @@ def main():
         fprint('hidden layer size: {}'.format(hidden_layer_size))
         net = mlp(28*28,10,[hidden_layer_size], args).to(device=args.device)
         train_loader, test_loader = load_mnist(args)
-        optimizer = torch.optim.Adam(net.parameters(),weight_decay=0.02)
+        optimizer = torch.optim.Adam(net.parameters(),weight_decay=0.0002)
         train(net,args,train_loader,test_loader,optimizer)
         
         if args.save_model:
@@ -166,4 +165,5 @@ def pick_result_fname(dir='results', qualifier='',ext='.txt'):
     return i, commit_id
     
 if __name__ == "__main__":
+    sys.argv=sys.argv+ ['--epochs', '25', '--activation', 'tanh']
     main()
