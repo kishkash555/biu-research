@@ -85,19 +85,26 @@ class HashNet2Layer(nn.Module):
 
 def main():
     print("main started")
+    
+    args = train_mnist.arguments()
+    
     input_size = 28 * 28
     output_size = 10
-    compression_factor = 64
-    hidden_size = 50
-    k1 = int(input_size*hidden_size / compression_factor)
-    k2 = int(hidden_size*output_size / compression_factor)
+    k1 = input_size * 50 # equivalent no. parameters in FC if hidden layer is 50
+    k2 = 50 * output_size
+    expansion_factor = args.seed # ugly hack 
+    hidden_size = 50 * expansion_factor 
+    
     model = HashNet2Layer(input_size, hidden_size, output_size, k1, k2)
-    args = train_mnist.arguments()
-    print("model initialized with k: {}, {}".format(k1,k2))
     train_loader, test_loader = train_mnist.load_mnist(args)
+    
+
+    data_file = train_mnist.init_log_file()
+    train_mnist.fprint("model initialized with expansion factor: {}".format(expansion_factor))
+    
     optimizer = torch.optim.Adam(model.parameters())
     train_mnist.train(model,args,train_loader, test_loader, optimizer)
-
+    train_mnist.wrapup_log_file(args, model, data_file)
 
 def mock_train_loader():
     train_loader = [(

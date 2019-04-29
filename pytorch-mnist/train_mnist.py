@@ -113,27 +113,33 @@ def mlp(input_size, output_size, hidden_sizes, args):
 
     return ret
 
+def init_log_file():
+    global log_file
+    k, commit_id = pick_result_fname(qualifier='log')
+    log_fname = format_filename(qualifier='log').format(commit_id, k)
+    data_fname = format_filename(qualifier='data', ext='.pkl').format(commit_id, k)
+    print('log file name: {}'.format(log_fname))
+    log_file = open(log_fname,'wt')
+    return data_fname
+
+def wrapup_log_file(args, net, data_fname):
+    if args.save_model:
+        with open(data_fname,'wb') as a:
+            pickle.dump(net.state_dict(),a)
+    log_file.close()
+
+
 def main():
     global log_file
     args = arguments()
     for hidden_layer_size in [50, 100,200,400,800,1200,1600]*10:
-        k, commit_id = pick_result_fname(qualifier='log')
-        log_fname = format_filename(qualifier='log').format(commit_id, k)
-        data_fname = format_filename(qualifier='data', ext='.pkl').format(commit_id, k)
-        print('log file name: {}'.format(log_fname))
-        log_file = open(log_fname,'wt')
-
+        data_fname = init_log_file()
         fprint('hidden layer size: {}'.format(hidden_layer_size))
         net = mlp(28*28,10,[hidden_layer_size], args).to(device=args.device)
         train_loader, test_loader = load_mnist(args)
         optimizer = torch.optim.Adam(net.parameters(),weight_decay=0.0002)
         train(net,args,train_loader,test_loader,optimizer)
-        
-        if args.save_model:
-            with open(data_fname,'wb') as a:
-                pickle.dump(net.state_dict(),a)
-
-        log_file.close()
+        wrapup_log_file(args, net, data_fname)        
 
 def fprint(msg):
     print(msg)
