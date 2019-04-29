@@ -41,74 +41,70 @@ def int_to_str(n):
 
 class hashedLayer(nn.Module):
     def __init__(self, fan_in, fan_out, K):
+        fan_in += 1 # for bias term
         super(hashedLayer, self).__init__()
-        xav = np.sqrt(6/(fan_in+fan_out))
         self.H = make_hash(fan_out, fan_in, K)
-        # initilize K with the equivalent of Glorot init
-        w_np = np.zeros(K,dtype=float)
-        t = np.random.random((fan_in, fan_out))*2*xav- xav
-        invH = np.zeros((fan_out, fan_in, K),np.uint8)
         hh=defaultdict(set)
 
         for j in range(fan_in):
             for i in range(fan_out):
                 k = self.H(i,j)
-                w_np[k] += t[j,i]
                 hh[(i,k)].add(j)
-                invH[i,j,k] = 1
 
-        self.W = torch.nn.Parameter(torch.tensor(w_np, dtype=torch.float, requires_grad=True))
+
+        d = fan_out*fan_in / K
+        self.W = torch.nn.Parameter(torch.randn(K, dtype=torch.float, requires_grad=True)/d)
         self.K = K
         self.fan_out = fan_out
-        self.H1 = torch.tensor(invH, dtype=torch.float, requires_grad=False)
         self.hh = hh
 
         
     def forward(self, a):
-        a_kj = torch.matmul(a, self.H1)
-        a_kj2 = torch.zeros(self.fan_out, a.shape[0], self.K)
+        b = torch.ones(a.shape[0],1)
+        a = torch.cat([a,b], dim =1)
+        a_kj = torch.zeros(self.fan_out, a.shape[0], self.K)
         for k in range(self.K):
             for i in range(self.fan_out):
-               a_kj2[i,:,k] = sum(a[:,j] for j in self.hh[i,k]) 
+               a_kj[i,:,k] = sum(a[:,j] for j in self.hh[i,k]) 
         zz = torch.matmul(a_kj, self.W)
-        zz2 = torch.matmul(a_kj2, self.W)
         return zz.t()
 
 class HashNet2Layer(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, k1, k2):
         super(HashNet2Layer,self).__init__()
         
-        self.fc1 = hashedLayer(input_size+1, hidden_size, k1) # +1 in order to include a constant "1" (the bias term)
+        self.fc1 = hashedLayer(input_size, hidden_size, k1) # +1 in order to include a constant "1" (the bias term)
         self.fc2 = hashedLayer(hidden_size, output_size, k2)
 #       self.fc2 = nn.Linear(hidden_size, output_size), 
     
     def forward(self,a):
-        b = torch.ones(a.shape[0],1)
-        ret = relu(self.fc1(torch.cat([a,b], dim =1)))
+        ret = relu(self.fc1(a))
         ret = self.fc2(ret)
         return ret
 
 
 def main():
     print("main started")
-    input_size = 10
+    input_size = 28 * 28
     output_size = 10
-    compression_factor = 2
-    hidden_size = 4
+    compression_factor = 64
+    hidden_size = 50
     k1 = int(input_size*hidden_size / compression_factor)
     k2 = int(hidden_size*output_size / compression_factor)
     model = HashNet2Layer(input_size, hidden_size, output_size, k1, k2)
     args = train_mnist.arguments()
-    print("model initialized")
-    #train_loader, test_loader = train_mnist.load_mnist(args)
-    train_loader = [(
-        torch.randn(64,10), 
-        torch.tensor(np.random.rand(64)*10, dtype= torch.long)
-        ) for _ in range(3)]
-    test_loader = None
-    print("loaders initialized")
+    print("model initialized with k: {}, {}".format(k1,k2))
+    train_loader, test_loader = train_mnist.load_mnist(args)
     optimizer = torch.optim.Adam(model.parameters())
     train_mnist.train(model,args,train_loader, test_loader, optimizer)
+
+
+def mock_train_loader():
+    train_loader = [(
+    torch.randn(64,10), 
+    torch.tensor(np.random.rand(64)*10, dtype= torch.long)
+    ) for _ in range(3)]
+    return train_loader
 
 if __name__ == "__main__":
     main()
