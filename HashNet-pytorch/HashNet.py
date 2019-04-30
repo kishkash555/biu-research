@@ -66,6 +66,8 @@ class hashedLayer(nn.Module):
             b = b.to(get_cuda_device)
         a = torch.cat([a,b], dim =1)
         a_kj = torch.zeros(self.fan_out, a.shape[0], self.K)
+        if a.is_cuda:
+            a_kj = a_kj.to(get_cuda_device)
         for k in range(self.K):
             for i in range(self.fan_out):
                a_kj[i,:,k] = sum(a[:,j] for j in self.hh[i,k]) 
