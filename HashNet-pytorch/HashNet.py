@@ -1,89 +1,103 @@
-import xxhash as xx
+from collections import defaultdict
+import hashing
 import numpy as np
-from random import randint
+from scipy import sparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import datasets, transforms
-import train_mnist
 
 relu = torch.nn.ReLU()
 
-def make_hash(m,n,k):
-    """
-    create a hash function and return it
-    the hash takes two input parameters, m and n, which determine the range
-    allowed in the input 0..m-1, 0..n-1
-    the output is in the range 0..k-1
-    :param m: the possible number of the hash's first parameter
-    :param n: the possible number of the hash's second parameter
-    """
-    my_rand_string = ''.join([chr(randint(0,255)) for _ in range(4)])
+def pseudo_randn(K, dtype, requires_grad):
+    return None
 
-    def hf(i,j):
-        if i >= m or j >= n:
-            raise ValueError("check range: {} < {}, {} < {}?".format(i,m,j,n))
-        num = i * n + j
-        h = xx.xxh32_intdigest(my_rand_string+ int_to_str(num)) 
-        return h % k
-    return hf
+if not torch.randn:
+    torch.randn = pseudo_randn
+    torch.float = float
 
-def int_to_str(n):
-    bts = ''
-    while n:
-        bts += chr(n % 256)
-        n = n - (n % 256)
-        n = int(n/256)
-    return bts
+class HashedLayerAG(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input, weight, bias, hn_hash):
+        # ctx.save_for_backward(input,weight,bias)
+        #ctx.hn_hash = hn_hash
+        w, phi = hn_hash.expand(weight, input)
+
+        ctx.w = torch.Tensor(w)
+        ctx.phi = torch.Tensor(phi)
+        output = input.mm(ctx.w.t())
+        output += bias
+        return output
+    
+    @staticmethod
+    def backward(ctx, grad_output):
+        # input, weight, bias = ctx.saved_tensors
+        w = ctx.w
+        grad_input = grad_weight = grad_bias = None
+        if ctx.needs_input_grad[0]:
+            grad_input = grad_output.mm(w)
+        if ctx.needs_input_grad[1]:
+            grad_weight = grad_output.mm(ctx.phi)
+        if ctx.needs_input_grad[2]:
+            grad_bias = grad_output.sum(0).squeeze(0)
+        return grad_input, grad_weight, grad_bias, None
+
+class newHashedLayer(nn.Module):
+    def __init__(self, fan_in, fan_out, K):
+        super().__init__()
+        self.H = hashing.hnHash(fan_out, fan_in, K)
+        d = fan_out*fan_in / K
+        self.W = torch.nn.Parameter(torch.randn(K, dtype=torch.float, requires_grad=True)/d)
+        self.bias = torch.nn.Parameter(torch.randn(fan_out, dtype=torch.float, requires_grad=True)/d)
+
+    def forward(self, input):
+        return HashedLayerAG.apply(input, self.W, self.bias, self.H)
 
 
 class hashedLayer(nn.Module):
     def __init__(self, fan_in, fan_out, K):
+        fan_in += 1 # for bias term
         super(hashedLayer, self).__init__()
-        xav = np.sqrt(6/(fan_in+fan_out))
-        self.H = make_hash(fan_out, fan_in, K)
-        # initilize K with the equivalent of Glorot init
-        w_np = np.zeros(K,dtype=float)
-        t = np.random.random((fan_in, fan_out))*2*xav- xav
-        invH = np.zeros((fan_out, fan_in, K),np.uint8)
+        self.H = hashing.make_hash(fan_out, fan_in, K)
+        hh=defaultdict(set)
 
         for j in range(fan_in):
             for i in range(fan_out):
                 k = self.H(i,j)
-                w_np[k] += t[j,i]
-                invH[i,j,k] = 1
-        self.W = torch.tensor(w_np, dtype=torch.float32, requires_grad=True)
+                hh[(i,k)].add(j)
+
+
+        d = fan_out*fan_in / K
+        self.W = torch.nn.Parameter(torch.randn(K, dtype=torch.float, requires_grad=True)/d)
         self.K = K
         self.fan_out = fan_out
-        self.H1 = torch.tensor(invH, dtype=torch.float, requires_grad=False)
+        self.hh = hh
+
         
     def forward(self, a):
-        a_kj = torch.matmul(a, self.H1)
+        b = torch.ones(a.shape[0],1)
+        if a.is_cuda:
+            get_cuda_device = a.get_device()
+            b = b.to(get_cuda_device)
+        a = torch.cat([a,b], dim =1)
+        a_kj = torch.zeros(self.fan_out, a.shape[0], self.K)
+        if a.is_cuda:
+            a_kj = a_kj.to(get_cuda_device)
+        for k in range(self.K):
+            for i in range(self.fan_out):
+               a_kj[i,:,k] = sum(a[:,j] for j in self.hh[i,k]) 
         zz = torch.matmul(a_kj, self.W)
         return zz.t()
 
-class HashNet(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, hashing_size):
-        super(HashNet,self).__init__()
+class HashNet2Layer(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, k1, k2):
+        super(HashNet2Layer,self).__init__()
         
-        self.fc1 = hashedLayer(input_size, hidden_size, hashing_size)
-        self.fc2 = nn.Linear(hidden_size, output_size)
+        self.fc1 = newHashedLayer(input_size, hidden_size, k1) 
+        self.fc2 = newHashedLayer(hidden_size, output_size, k2)
     
     def forward(self,a):
         ret = relu(self.fc1(a))
         ret = self.fc2(ret)
         return ret
 
-
-def main():
-    print("main started")
-    model = HashNet(28*28, 80, 10, 10)
-    args = train_mnist.arguments()
-    print("model initialized")
-    train_loader, test_loader = train_mnist.load_mnist(args)
-    print("loaders initialized")
-    optimizer = torch.optim.Adam(model.parameters())
-    train_mnist.train(model,args,train_loader, test_loader, optimizer, 10)
-
-if __name__ == "__main__":
-    main()
