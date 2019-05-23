@@ -54,41 +54,6 @@ class newHashedLayer(nn.Module):
         return HashedLayerAG.apply(input, self.W, self.bias, self.H)
 
 
-class hashedLayer(nn.Module):
-    def __init__(self, fan_in, fan_out, K):
-        fan_in += 1 # for bias term
-        super(hashedLayer, self).__init__()
-        self.H = hashing.make_hash(fan_out, fan_in, K)
-        hh=defaultdict(set)
-
-        for j in range(fan_in):
-            for i in range(fan_out):
-                k = self.H(i,j)
-                hh[(i,k)].add(j)
-
-
-        d = fan_out*fan_in / K
-        self.W = torch.nn.Parameter(torch.randn(K, dtype=torch.float, requires_grad=True)/d)
-        self.K = K
-        self.fan_out = fan_out
-        self.hh = hh
-
-        
-    def forward(self, a):
-        b = torch.ones(a.shape[0],1)
-        if a.is_cuda:
-            get_cuda_device = a.get_device()
-            b = b.to(get_cuda_device)
-        a = torch.cat([a,b], dim =1)
-        a_kj = torch.zeros(self.fan_out, a.shape[0], self.K)
-        if a.is_cuda:
-            a_kj = a_kj.to(get_cuda_device)
-        for k in range(self.K):
-            for i in range(self.fan_out):
-               a_kj[i,:,k] = sum(a[:,j] for j in self.hh[i,k]) 
-        zz = torch.matmul(a_kj, self.W)
-        return zz.t()
-
 class HashNet2Layer(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, k1, k2):
         super(HashNet2Layer,self).__init__()
