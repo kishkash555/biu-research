@@ -147,7 +147,7 @@ def main():
         wrapup_log_file(args, net, data_fname)        
 
 def fprint(msg):
-    print(msg)
+    print(msg, flush=True)
     if log_file:
         log_file.write(msg+'\n')
         log_file.flush()

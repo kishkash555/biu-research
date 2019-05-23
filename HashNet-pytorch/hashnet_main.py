@@ -2,7 +2,7 @@ import argparse
 import train_mnist
 import HashNet
 import torch
-
+from os import getpid
 INPUT_SIZE = 784 # 28*28 gray scale input image
 OUTPUT_SIZE = 10 # number of classes 
 
@@ -12,26 +12,17 @@ def main():
     
     args = arguments()
     args.data_fname = train_mnist.init_log_file()
+    train_mnist.fprint("pid: {}".format(getpid()))
     args_str = "\n".join("{}: {}".format(k,v) for k,v in sorted(args.__dict__.items()))
     train_mnist.fprint("model initialized with command line arguments:\n{}".format(args_str))
     
 
     model = HashNet.HashNet2Layer(INPUT_SIZE, args.hidden, OUTPUT_SIZE, args.k1, args.k2).to(device=args.device)
     train_loader, test_loader = train_mnist.load_mnist(args)
-    
-
-    data_file = train_mnist.init_log_file()
-    
+        
     optimizer = torch.optim.Adam(model.parameters())
     train_mnist.train(model,args,train_loader, test_loader, optimizer)
-    train_mnist.wrapup_log_file(args, model, data_file)
-
-def mock_train_loader():
-    train_loader = [(
-    torch.randn(64,10), 
-    torch.tensor(np.random.rand(64)*10, dtype= torch.long)
-    ) for _ in range(3)]
-    return train_loader
+    train_mnist.wrapup_log_file(args, model, args.data_fname)
 
 
 def arguments():
@@ -63,7 +54,6 @@ def arguments():
     else:
         print('initializing cpu')
         arg.device = torch.device('cpu')
-    print("arguments:\n{}".format(arg))
     return arg
 
 
