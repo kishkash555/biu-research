@@ -56,6 +56,11 @@ class newHashedLayer(nn.Module):
 
 class HashNet2Layer(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, k1, k2):
+        """
+        initialize a two layer fully connected NN
+        :parameter k1: The number of true parameters in the first connection matrix
+        :parameter k2: The number of true parameters in the first connection matrix
+        """
         super(HashNet2Layer,self).__init__()
         
         self.fc1 = newHashedLayer(input_size, hidden_size, k1) 
