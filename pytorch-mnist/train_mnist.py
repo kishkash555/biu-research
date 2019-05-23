@@ -145,6 +145,7 @@ def fprint(msg):
     print(msg)
     if log_file:
         log_file.write(msg+'\n')
+        log_file.flush()
 
     
 def get_commit_id():
