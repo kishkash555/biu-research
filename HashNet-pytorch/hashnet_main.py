@@ -43,10 +43,12 @@ def arguments():
     parser.add_argument('--k2', type=int, default=62,
                         help='how many batches to wait before logging training status')
     parser.add_argument('--hidden', type=int, default=400,
-                        help='how many batches to wait before logging training status')
-    
+                        help='how many batches to wait before logging training status')    
     parser.add_argument('--save-interval', type=int, default=-1,
-                        help='For Saving the current Model')
+                        help='For Saving the current Model during run')
+    parser.add_argument('--save-model', action='store_true', default=True,
+                        help='For Saving the current Model at end of run')
+
     arg = parser.parse_args()
     if torch.cuda.is_available():
         print('initializing {}'.format(arg.device))
