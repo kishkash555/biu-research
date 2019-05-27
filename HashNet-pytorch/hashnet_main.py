@@ -2,6 +2,7 @@ import argparse
 import train_mnist
 import HashNet
 import torch
+from common.fprint import init_log_file, wrapup_log_file, fprint
 from os import getpid
 INPUT_SIZE = 784 # 28*28 gray scale input image
 OUTPUT_SIZE = 10 # number of classes 
@@ -11,7 +12,7 @@ def main():
     print("main started")
     
     args = arguments()
-    args.data_fname = train_mnist.init_log_file()
+    args.data_fname = init_log_file()
     train_mnist.fprint("pid: {}".format(getpid()))
     args_str = "\n".join("{}: {}".format(k,v) for k,v in sorted(args.__dict__.items()))
     train_mnist.fprint("model initialized with command line arguments:\n{}".format(args_str))
@@ -22,7 +23,7 @@ def main():
         
     optimizer = torch.optim.Adam(model.parameters())
     train_mnist.train(model,args,train_loader, test_loader, optimizer)
-    train_mnist.wrapup_log_file(args, model, args.data_fname)
+    wrapup_log_file(args, model, args.data_fname)
 
 
 def arguments():
