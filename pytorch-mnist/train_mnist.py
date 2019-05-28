@@ -30,6 +30,7 @@ def load_mnist(args):
 def train(model, args, train_loader,test_loader, optimizer):
     model.train(True)
     CE = nn.CrossEntropyLoss()
+    save_counter = 0
     for epoch in range(args.epochs):
         start = now()
         for batch_idx, (data, target) in enumerate(train_loader):
@@ -46,9 +47,12 @@ def train(model, args, train_loader,test_loader, optimizer):
                     100. * batch_idx / len(train_loader), loss.item(),
                     now()-start))
                 start = now()
-            if 'save_interval' in args and args.save_interval > 0 and (batch_idx+1) % args.save_interval == 0:
-                fprint('Saving model')
-                with open(args.data_fname,'wb') as a:
+            if 'save_interval' in args and args.save_interval > 0 and batch_idx % args.save_interval == 0:
+                fprint('Saving model {}'.format(save_counter))
+                save_fname = args.data_fname.split('.')
+                save_fname[0] = "{}_{:03}".format(save_fname[0], save_counter)
+                save_counter += 1
+                with open('.'.join(save_fname),'wb') as a:
                     pickle.dump(model.state_dict(),a)
 
         test(model, args, test_loader)
